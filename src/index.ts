@@ -1,9 +1,9 @@
 import { AptosAccount, AptosClient, HexString } from 'aptos';
 import * as fs from 'fs';
 import { getRandomInt, sleep } from './utils';
-import { DexTrader } from './dexTrader';
-import { LiquidStaker } from './liquidStaker';
-import { NftTrader } from './nftTrader';
+import { LiquidStakeModule } from './modules/stake.module';
+import { NftModule } from './modules/nft.module';
+import { SwapModule } from './modules/swap.module';
 
 const config = readConfig();
 const client = new AptosClient(config.nodeURL);
@@ -54,11 +54,11 @@ async function session(
   timeSleepMin: number,
   timeSleepMax: number
 ) {
-  const dexTrader = new DexTrader(privateKey, client);
-  const liquidStaker = new LiquidStaker(privateKey, client);
-  const nftTrader = new NftTrader(privateKey, client);
+  const dexTrader = new SwapModule(privateKey, client);
+  const liquidStaker = new LiquidStakeModule(privateKey, client);
+  const nftTrader = new NftModule(privateKey, client);
 
-  const msDelayArr = [];
+  const msDelayArr: number[] = [];
   let totalDelay = 0;
   for (let i = 0; i < txAmount; i++) {
     const randomSleep = getRandomInt(timeSleepMin, timeSleepMax);
@@ -90,11 +90,12 @@ async function session(
         walletOutputDataArr[walletID].current_tx_type = 'liquid staking action';
         txHash = await liquidStaker.makeRandomStakeAction();
         break;
+
       default:
         break;
     }
 
-    if (txHash == 'error') {
+    if (txHash === 'error') {
       walletOutputDataArr[walletID].last_tx_result = 'Error when creating a TX';
     } else {
       const txResult = ((await client.waitForTransactionWithResult(txHash as string)) as any).success;
@@ -143,7 +144,7 @@ function readConfig(): Config {
       txAmountMax: 7,
       timeSleepMin: 120000,
       timeSleepMax: 300000,
-      nodeURL: 'https://fullnode.mainnet.aptoslabs.com/v1',
+      nodeURL: 'https://rpc.ankr.com/http/aptos/v1',
       APTprice: 7.5,
     };
   }
@@ -160,7 +161,7 @@ function renderOutput() {
 
 function isProgramCompleted() {
   for (let i = 0; i < walletOutputDataArr.length; i++) {
-    if (walletOutputDataArr[i].status == 0) return;
+    if (walletOutputDataArr[i].status === 0) return;
   }
   process.exit();
 }

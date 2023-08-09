@@ -1,8 +1,13 @@
 import { AptosClient, AptosAccount, HexString } from 'aptos';
-import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from './utils';
-import { tokenList } from './tokenList';
+import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../utils';
+import { tokenList } from '../tokenList';
 
-export class LiquidStaker {
+const TORTUGA_CONTRACT_ADDRESS = '0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f';
+const APTOS_TORTUGA_STAKED_ADDRESS = '0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541';
+const STAKED_APTOS_COIN_ADDRESS = '0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114';
+const DITTO_STAKED_APTOS_ADDRESS = '0xd11107bdf0d6d7040c6c0bfbdecb6545191fdf13e8d8d259952f53e1713f61b5';
+
+export class LiquidStakeModule {
   private privateKey: string;
   private hexPrivateKey: HexString;
   private account: AptosAccount;
@@ -34,7 +39,6 @@ export class LiquidStaker {
 
   private async randomUnStake(stAPTbalance: number, tAPTbalance: number): Promise<string> {
     const amountForDitto = getRandomInt(calculatePercentage(stAPTbalance, 60), calculatePercentage(stAPTbalance, 100));
-
     const amountForTortuga = getRandomInt(calculatePercentage(tAPTbalance, 60), calculatePercentage(tAPTbalance, 100));
 
     let txHash;
@@ -60,7 +64,8 @@ export class LiquidStaker {
 
     const platformNum = getRandomInt(1, 2);
     let sendedTxHash;
-    if (platformNum == 1) sendedTxHash = await this.stakeOnDittoFi(amount);
+
+    if (platformNum === 1) sendedTxHash = await this.stakeOnDittoFi(amount);
     else sendedTxHash = await this.stakeOnTortuga(amount);
 
     return sendedTxHash as string;
@@ -68,7 +73,6 @@ export class LiquidStaker {
 
   public async stakeOnDittoFi(amount: number): Promise<string> {
     const payload = this.getPayloadForStakeOnDittoFi(amount);
-    // console.log("payload транзакции сгенерирован\n")
 
     const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
     const options: Partial<SubmitTransactionRequest> = {
@@ -76,20 +80,16 @@ export class LiquidStaker {
       expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
     };
     const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-
-    // console.log("транзакция сгенерирована\n")
     const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
-    // console.log("транзакция на стейкинг в DittoFi подписана и отправлена: " + sendedTxHash + "\n")
+
     return sendedTxHash;
   }
 
   public async unstakeFromDittoFi(amount: number): Promise<string> {
     const stAPTbalance = await getTokenBalance(tokenList[4].address, this.account, this.client);
-
     if (amount > stAPTbalance) amount = stAPTbalance;
 
     const payload = this.getPayloadForUnstakeFromDittoFi(amount);
-    // console.log("payload транзакции сгенерирован\n")
 
     const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
     const options: Partial<SubmitTransactionRequest> = {
@@ -97,24 +97,20 @@ export class LiquidStaker {
       expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
     };
     const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-
-    // console.log("транзакция сгенерирована\n")
     const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
-    // console.log("транзакция на анстейкинг из DittoFi подписана и отправлена: " + sendedTxHash + "\n")
+
     return sendedTxHash;
   }
 
   private getPayloadForUnstakeFromDittoFi(amount: number): EntryFunctionPayload {
-    const moveFunction =
-      '0xd11107bdf0d6d7040c6c0bfbdecb6545191fdf13e8d8d259952f53e1713f61b5::ditto_staking::instant_unstake';
+    const moveFunction = `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::instant_unstake`;
     const _arguments = [amount.toString()];
     const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
     return payload;
   }
 
   private getPayloadForStakeOnDittoFi(amount: number): EntryFunctionPayload {
-    const moveFunction =
-      '0xd11107bdf0d6d7040c6c0bfbdecb6545191fdf13e8d8d259952f53e1713f61b5::ditto_staking::stake_aptos';
+    const moveFunction = `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::stake_aptos`;
     const _arguments = [amount.toString()];
     const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
     return payload;
@@ -122,7 +118,6 @@ export class LiquidStaker {
 
   public async stakeOnTortuga(amount: number): Promise<string> {
     const payload = this.getPayloadForStakeOnTortuga(amount);
-    // console.log("payload транзакции сгенерирован\n")
 
     const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
     const options: Partial<SubmitTransactionRequest> = {
@@ -130,20 +125,16 @@ export class LiquidStaker {
       expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
     };
     const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-
-    // console.log("транзакция сгенерирована\n")
     const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
-    // console.log("транзакция на стейкинг в Tortuga подписана и отправлена: " + sendedTxHash + "\n")
+
     return sendedTxHash;
   }
 
   public async unstakeFromTortuga(amount: number): Promise<string> {
     const tAPTbalance = await getTokenBalance(tokenList[5].address, this.account, this.client);
-
     if (amount > tAPTbalance) amount = tAPTbalance;
 
     const payload = this.getPayloadForUnstakeFromTortuga(amount);
-    // console.log("payload транзакции сгенерирован\n")
 
     const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
     const options: Partial<SubmitTransactionRequest> = {
@@ -151,18 +142,15 @@ export class LiquidStaker {
       expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
     };
     const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-
-    // console.log("транзакция сгенерирована\n")
     const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
-    // console.log("транзакция на анстейкинг из Tortuga подписана и отправлена: " + sendedTxHash + "\n")
+
     return sendedTxHash;
   }
 
   private getPayloadForUnstakeFromTortuga(amount: number): EntryFunctionPayload {
-    const moveFunction =
-      '0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541::amm::swap_exact_coin_for_coin_with_signer';
+    const moveFunction = `${APTOS_TORTUGA_STAKED_ADDRESS}::amm::swap_exact_coin_for_coin_with_signer`;
     const type_arguments = [
-      '0x84d7aeef42d38a5ffc3ccef853e1b82e4958659d16a7de736a29c55fbbeb0114::staked_aptos_coin::StakedAptosCoin',
+      `${STAKED_APTOS_COIN_ADDRESS}::staked_aptos_coin::StakedAptosCoin`,
       '0x1::aptos_coin::AptosCoin',
     ];
     const _arguments = [amount.toString(), '0'];
@@ -175,7 +163,7 @@ export class LiquidStaker {
   }
 
   private getPayloadForStakeOnTortuga(amount: number): EntryFunctionPayload {
-    const moveFunction = '0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f::stake_router::stake';
+    const moveFunction = `${TORTUGA_CONTRACT_ADDRESS}::stake_router::stake`;
     const _arguments = [amount.toString()];
     const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
     return payload;

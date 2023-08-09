@@ -1,5 +1,5 @@
 import { AptosAccount, AptosClient, HexString, Network, Provider } from 'aptos';
-import { tokenList } from './tokenList';
+import { tokenList } from '../tokenList';
 import {
   addHoursAndGetSeconds,
   calculatePercentage,
@@ -7,7 +7,7 @@ import {
   getTokenBalance,
   sendGetRequest,
   shuffleArray,
-} from './utils';
+} from '../utils';
 
 const blueMoveExchangeAddress = `0xd1fd99c1944b84d1670a2536417e997864ad12303d19eac725891691b04d614e`;
 
@@ -149,7 +149,7 @@ export class NftModule {
     );
 
     let listedItems: NftItem[] = [];
-    if (response.data.length == 0) return listedItems;
+    if (response.data.length === 0) return listedItems;
 
     for (let i = 0; i < response.data.length; i++) {
       const { name, collection_name, creator, property_version, price } = response.data[i].attributes;
@@ -171,13 +171,13 @@ export class NftModule {
   public async blueMoveBuy(maxPrice: number): Promise<string> {
     // looking for the collection to buy
     const collectionForBuy = await this.searchOptimalCollectionForBuy(maxPrice);
-    if (collectionForBuy == 0) {
+    if (collectionForBuy === 0) {
       // didn`t found one
       return `error`;
     }
 
     const nftForBuy = await this.getCheapestItemFromCollection(collectionForBuy);
-    if (nftForBuy == undefined) {
+    if (nftForBuy === undefined) {
       return `error`;
     }
     const payload = await this.getPayloadForNftBuy(nftForBuy);
@@ -204,7 +204,7 @@ export class NftModule {
       let result = false;
 
       for (let j = 0; j < bluemoveCollections.length; j++) {
-        if (bluemoveCollections[j].attributes.name == userNftCollectionName) {
+        if (bluemoveCollections[j].attributes.name === userNftCollectionName) {
           result = true;
           break;
         }
@@ -225,7 +225,7 @@ export class NftModule {
 
   public async blueMoveListForSell(item: NftItem): Promise<string> {
     const payload = await this.getPayloadForNftSell(item);
-    if (payload == 0) return `error`;
+    if (payload === 0) return `error`;
 
     const max_gas_amount = await this.client.estimateMaxGasAmount(this.aptosAccount.address());
     const options: Partial<SubmitTransactionRequest> = {
@@ -261,9 +261,9 @@ export class NftModule {
   private async getSellPriceByCollectionName(collectionName: string): Promise<string> {
     const collections = await this.getCollections();
     for (let i = 0; i < collections.length; i++) {
-      if (collections[i].attributes.name == collectionName) {
+      if (collections[i].attributes.name === collectionName) {
         const cheapestItem = await this.getCheapestItemFromCollection(collections[i]);
-        if (cheapestItem == undefined) return `10000000`;
+        if (cheapestItem === undefined) return `10000000`;
         return cheapestItem.price;
       }
     }
@@ -281,7 +281,7 @@ export class NftModule {
   private async getPayloadForNftSell(item: NftItem): Promise<EntryFunctionPayload | number> {
     const moveFunction = `${blueMoveExchangeAddress}::marketplaceV2::batch_list_script`;
     const sellPrice = await this.getSellPriceByCollectionName(item.collection_name);
-    if (sellPrice == `0`) return 0;
+    if (sellPrice === `0`) return 0;
     const _arguments = [
       [item.creator],
       [item.collection_name],
@@ -298,8 +298,8 @@ export class NftModule {
     for (let i = 0; i < collections.length; i++) {
       if (Number(collections[i].attributes.floor_price) <= maxPrice) {
         const cheapestItem = await this.getCheapestItemFromCollection(collections[i]);
-        if (cheapestItem == undefined) continue;
-        if (collections[i].attributes.floor_price == cheapestItem.price) return collections[i];
+        if (cheapestItem === undefined) continue;
+        if (collections[i].attributes.floor_price === cheapestItem.price) return collections[i];
         else {
           if (Number(cheapestItem.price) <= maxPrice) return collections[i];
         }
@@ -316,7 +316,7 @@ export class NftModule {
         `&filters[$or][0][status][$eq]=1&filters[price][$gte]=0&filters[price][$lte]=10000000000000000&sort[0]=price%3Aasc&pagination[page]=1&pagination[pageSize]=24`
     );
     const rawCheapestItem = collectionInfo[`data`][0];
-    if (rawCheapestItem == undefined) return undefined;
+    if (rawCheapestItem === undefined) return undefined;
     return {
       name: rawCheapestItem.attributes.name,
       collection_name: rawCheapestItem.attributes.collection_name,
