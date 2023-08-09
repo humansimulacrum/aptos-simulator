@@ -1,0 +1,22 @@
+{
+  "name": "l0-merkly",
+  "version": "1.0.0",
+  "description": "Software for L0 possible retrodrop",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "author": "simulacrum",
+  "license": "ISC",
+  "dependencies": {
+    "aptos": "^1.17.0",
+    "axios": "^1.4.0",
+    "web3": "1.10.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "^18.2.0",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.1.6"
+  }
+}
