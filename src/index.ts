@@ -45,6 +45,7 @@ async function main() {
 
   renderOutput();
 }
+
 main();
 
 async function session(
@@ -71,7 +72,6 @@ async function session(
 
   for (let i = 0; i < txAmount; i++) {
     walletOutputDataArr[walletID].min_until_next_tx = Number((msDelayArr[i] / 60000).toFixed(2));
-    await sleep(msDelayArr[i]);
 
     const txType = getRandomInt(1, 3);
     let txHash;
@@ -106,6 +106,8 @@ async function session(
       }
     }
     walletOutputDataArr[walletID].progress = i + 1 + '/' + txAmount;
+
+    await sleep(msDelayArr[i]);
   }
   walletOutputDataArr[walletID].status = 1;
 }
@@ -155,6 +157,7 @@ function printWalletsInfo() {
   console.table(walletOutputDataArr);
   isProgramCompleted();
 }
+
 function renderOutput() {
   setInterval(printWalletsInfo, 500);
 }

@@ -93,7 +93,7 @@ export class NftModule {
   private async handleBuyAction(balance: number, price: number, usdValue: number, percentage: number): Promise<string> {
     let txHash: string;
 
-    if (balance > 150000000) {
+    if (Number(balance) > 150000000) {
       // buying with fixed max usd value
       txHash = await this.blueMoveBuy(Math.floor((usdValue / price) * 100000000));
     } else {

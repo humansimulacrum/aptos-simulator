@@ -28,13 +28,14 @@ export class SwapModule {
 
     for (let i = 0; i < tokenList.length; i++) {
       const tokenBalance = await getTokenBalance(tokenList[i].address, this.account, this.client);
-      if (tokenBalance > 0) accountTokens.push(tokenList[i]);
+      const cashInToken = tokenList[i].estimatedPriceInUsd * (tokenBalance / 10 ** tokenList[i].decimals);
+      if (cashInToken > 0.1) accountTokens.push(tokenList[i]);
     }
 
     fromToken = accountTokens[getRandomInt(0, accountTokens.length - 1)];
 
     while (true) {
-      // if APT is the only one token available - we should grab another one
+      // if APT is not the only one token available - we should grab another one
       if (accountTokens.length === 1 && accountTokens[0] === tokenList[0]) {
         toToken = tokenList[getRandomInt(1, tokenList.length - 1)];
       } else {
