@@ -1,17 +1,28 @@
 import { AptosAccount, AptosClient, HexString } from 'aptos';
-import * as fs from 'fs';
-import { getRandomInt, sleep } from './utils';
+
 import { LiquidStakeModule } from './modules/stake.module';
 import { NftModule } from './modules/nft.module';
 import { SwapModule } from './modules/swap.module';
 
-const config = readConfig();
-const client = new AptosClient(config.nodeURL);
+import {
+  rpcUrl,
+  sleepBetweenTransactionsMax,
+  sleepBetweenTransactionsMin,
+  txAmountMax,
+  txAmountMin,
+} from './config.const';
+
+import { tokenList } from './tokenList.const';
+import { renderOutput } from './helpers/console.helper';
+import { importWallets } from './helpers/file-import.helper';
+import { getRandomInt, sleep } from './helpers';
+
+const client = new AptosClient(rpcUrl);
 
 let walletOutputDataArr: WalletOutputData[] = [];
 
 async function main() {
-  const privateKeys = readPrivateKeysFromFile('privateKeys.txt');
+  const privateKeys = await importWallets();
 
   for (let i = 0; i < privateKeys.length; i++) {
     try {
@@ -35,15 +46,15 @@ async function main() {
     });
 
     session(
-      getRandomInt(config.txAmountMin, config.txAmountMax),
+      getRandomInt(txAmountMin, txAmountMax),
       privateKeys[i],
       i,
-      config.timeSleepMin,
-      config.timeSleepMax
+      sleepBetweenTransactionsMin * 1000,
+      sleepBetweenTransactionsMax * 1000
     );
   }
 
-  renderOutput();
+  renderOutput(walletOutputDataArr);
 }
 
 main();
@@ -83,7 +94,7 @@ async function session(
 
       case 2:
         walletOutputDataArr[walletID].current_tx_type = 'NFT action';
-        txHash = await nftTrader.makeRandomNftAction(config.APTprice);
+        txHash = await nftTrader.makeRandomNftAction(tokenList[0].estimatedPriceInUsd);
         break;
 
       case 3:
@@ -112,63 +123,6 @@ async function session(
   walletOutputDataArr[walletID].status = 1;
 }
 
-function readPrivateKeysFromFile(filePath: string): string[] {
-  const privateKeys: string[] = [];
-
-  try {
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const lines = data.split('\n');
-
-    lines.forEach((line) => {
-      const privateKey = line.trim();
-      if (privateKey) {
-        privateKeys.push(privateKey);
-      }
-    });
-
-    return privateKeys;
-  } catch (error) {
-    console.error('Error while reading file:', error);
-    return [];
-  }
-}
-
-function readConfig(): Config {
-  const configPath = 'config.json';
-
-  try {
-    const data = fs.readFileSync(configPath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error while reading file config.json:', error);
-    return {
-      txAmountMin: 4,
-      txAmountMax: 7,
-      timeSleepMin: 120000,
-      timeSleepMax: 300000,
-      nodeURL: 'https://rpc.ankr.com/http/aptos/v1',
-      APTprice: 7.5,
-    };
-  }
-}
-
-function printWalletsInfo() {
-  console.clear();
-  console.table(walletOutputDataArr);
-  isProgramCompleted();
-}
-
-function renderOutput() {
-  setInterval(printWalletsInfo, 500);
-}
-
-function isProgramCompleted() {
-  for (let i = 0; i < walletOutputDataArr.length; i++) {
-    if (walletOutputDataArr[i].status === 0) return;
-  }
-  process.exit();
-}
-
 declare type WalletOutputData = {
   session_duration_min: number;
   progress: string;
@@ -176,13 +130,4 @@ declare type WalletOutputData = {
   last_tx_result: string;
   min_until_next_tx: number;
   status: number;
-};
-
-declare type Config = {
-  txAmountMin: number;
-  txAmountMax: number;
-  timeSleepMin: number;
-  timeSleepMax: number;
-  nodeURL: string;
-  APTprice: number;
 };

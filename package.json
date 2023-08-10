@@ -1,7 +1,7 @@
 {
-  "name": "l0-merkly",
+  "name": "aptos-sim",
   "version": "1.0.0",
-  "description": "Software for L0 possible retrodrop",
+  "description": "Software for Aptos possible retrodrop",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts"

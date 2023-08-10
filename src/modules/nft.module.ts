@@ -1,13 +1,13 @@
 import { AptosAccount, AptosClient, HexString, Network, Provider } from 'aptos';
-import { tokenList } from '../tokenList';
+import { tokenList } from '../tokenList.const';
 import {
   addHoursAndGetSeconds,
   calculatePercentage,
   getRandomInt,
   getTokenBalance,
   sendGetRequest,
-  shuffleArray,
-} from '../utils';
+  shuffle,
+} from '../helpers';
 
 const blueMoveExchangeAddress = `0xd1fd99c1944b84d1670a2536417e997864ad12303d19eac725891691b04d614e`;
 
@@ -267,7 +267,6 @@ export class NftModule {
         return cheapestItem.price;
       }
     }
-    // console.log("Коллекция не найдена или не торгуется на BlueMove\n")
     return `0`;
   }
 
@@ -350,7 +349,7 @@ export class NftModule {
     for (let i = 0; i < page2[`data`].length; i++) collections.push(page2[`data`][i]);
     for (let i = 0; i < page3[`data`].length; i++) collections.push(page3[`data`][i]);
 
-    return shuffleArray(collections);
+    return shuffle(collections);
   }
 }
 

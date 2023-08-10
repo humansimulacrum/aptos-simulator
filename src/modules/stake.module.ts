@@ -1,6 +1,6 @@
 import { AptosClient, AptosAccount, HexString } from 'aptos';
-import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../utils';
-import { tokenList } from '../tokenList';
+import { tokenList } from '../tokenList.const';
+import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
 
 const TORTUGA_CONTRACT_ADDRESS = '0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f';
 const APTOS_TORTUGA_STAKED_ADDRESS = '0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541';

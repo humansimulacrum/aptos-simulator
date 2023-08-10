@@ -1,6 +1,6 @@
 import { AptosAccount, AptosClient, HexString } from 'aptos';
-import { Token, tokenList } from '../tokenList';
-import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../utils';
+import { Token, tokenList } from '../tokenList.const';
+import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
 
 const LIQUID_SWAP_CONTRACT_ADDRESS = '0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12';
 

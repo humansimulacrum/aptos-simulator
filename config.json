@@ -1,8 +1,0 @@
-{
-  "txAmountMin": 4,
-  "txAmountMax": 7,
-  "timeSleepMin": 120000,
-  "timeSleepMax": 300000,
-  "nodeURL": "https://rpc.ankr.com/http/aptos/v1",
-  "APTprice": 7.5
-}
