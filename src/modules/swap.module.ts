@@ -20,48 +20,53 @@ export class SwapModule {
   }
 
   public async makeRandomSwap(): Promise<string> {
-    let fromToken;
-    let toToken;
-    let amount;
+    try {
+      let fromToken;
+      let toToken;
+      let amount;
 
-    const accountTokens: Token[] = [];
+      const accountTokens: Token[] = [];
 
-    for (let i = 0; i < tokenList.length; i++) {
-      const tokenBalance = await getTokenBalance(tokenList[i].address, this.account, this.client);
-      const cashInToken = tokenList[i].estimatedPriceInUsd * (tokenBalance / 10 ** tokenList[i].decimals);
-      if (cashInToken > 0.1) accountTokens.push(tokenList[i]);
-    }
-
-    fromToken = accountTokens[getRandomInt(0, accountTokens.length - 1)];
-
-    while (true) {
-      // if APT is not the only one token available - we should grab another one
-      if (accountTokens.length === 1 && accountTokens[0] === tokenList[0]) {
-        toToken = tokenList[getRandomInt(1, tokenList.length - 1)];
-      } else {
-        toToken = tokenList[getRandomInt(0, tokenList.length - 1)];
+      for (let i = 0; i < tokenList.length; i++) {
+        const tokenBalance = await getTokenBalance(tokenList[i].address, this.account, this.client);
+        const cashInToken = tokenList[i].estimatedPriceInUsd * (tokenBalance / 10 ** tokenList[i].decimals);
+        if (cashInToken > 0.1) accountTokens.push(tokenList[i]);
       }
 
-      // till we found the token that is different
-      if (toToken.address !== fromToken.address) break;
+      fromToken = accountTokens[getRandomInt(0, accountTokens.length - 1)];
+
+      while (true) {
+        // if APT is not the only one token available - we should grab another one
+        if (accountTokens.length === 1 && accountTokens[0] === tokenList[0]) {
+          toToken = tokenList[getRandomInt(1, tokenList.length - 1)];
+        } else {
+          toToken = tokenList[getRandomInt(0, tokenList.length - 1)];
+        }
+
+        // till we found the token that is different
+        if (toToken.address !== fromToken.address) break;
+      }
+
+      const fromTokenBalance = await getTokenBalance(fromToken.address, this.account, this.client);
+
+      if (fromToken === tokenList[0]) {
+        amount = getRandomInt(calculatePercentage(fromTokenBalance, 10), calculatePercentage(fromTokenBalance, 70));
+      } else {
+        amount = getRandomInt(calculatePercentage(fromTokenBalance, 10), fromTokenBalance);
+      }
+
+      if (!accountTokens.includes(toToken)) {
+        const regTokenTx = await this.registerToken(toToken);
+        const txResult = ((await this.client.waitForTransactionWithResult(regTokenTx as string)) as any).success;
+        if (!txResult) return 'error';
+      }
+
+      const sendedTxHash = await this.liquidSwap(fromToken, toToken, amount);
+      return sendedTxHash;
+    } catch (error: any) {
+      console.log(`${this.walletAddress}: Error occured - ${error.message}`);
+      return 'error';
     }
-
-    const fromTokenBalance = await getTokenBalance(fromToken.address, this.account, this.client);
-
-    if (fromToken === tokenList[0]) {
-      amount = getRandomInt(calculatePercentage(fromTokenBalance, 10), calculatePercentage(fromTokenBalance, 70));
-    } else {
-      amount = getRandomInt(calculatePercentage(fromTokenBalance, 10), fromTokenBalance);
-    }
-
-    if (!accountTokens.includes(toToken)) {
-      const regTokenTx = await this.registerToken(toToken);
-      const txResult = ((await this.client.waitForTransactionWithResult(regTokenTx as string)) as any).success;
-      if (!txResult) return 'error';
-    }
-
-    const sendedTxHash = await this.liquidSwap(fromToken, toToken, amount);
-    return sendedTxHash;
   }
 
   public async registerToken(token: Token): Promise<string> {

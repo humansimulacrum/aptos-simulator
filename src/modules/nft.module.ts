@@ -24,70 +24,75 @@ export class NftModule {
     this.client = client;
   }
   public async makeRandomNftAction(APTprice: number): Promise<string> {
-    const APTbalance = await getTokenBalance(tokenList[0].address, this.aptosAccount, this.client);
+    try {
+      const APTbalance = await getTokenBalance(tokenList[0].address, this.aptosAccount, this.client);
 
-    const accountNfts = await this.getAccountNFTs();
-    const listedItems = await this.getListedItems();
+      const accountNfts = await this.getAccountNFTs();
+      const listedItems = await this.getListedItems();
 
-    if (accountNfts.length === 0) {
-      // 0 NFT is in the wallet
+      if (accountNfts.length === 0) {
+        // 0 NFT is in the wallet
 
-      if (listedItems.length === 0) {
-        // 0 listed => buy
-        // 2$ - max nft price, 30% max percentage for nft
-        return this.handleBuyAction(APTbalance, APTprice, 2, 30);
-      }
-
-      if (listedItems.length <= 2) {
-        // 1-2 listed => relist / buy
-        const action = getRandomInt(0, 1);
-        if (action) {
-          // 0.7$ - max nft price, 15% max percentage for NFT
-          return this.handleBuyAction(APTbalance, APTprice, 0.7, 15);
-        } else {
-          return this.handleRelistAction(listedItems);
+        if (listedItems.length === 0) {
+          // 0 listed => buy
+          // 2$ - max nft price, 30% max percentage for nft
+          return this.handleBuyAction(APTbalance, APTprice, 2, 30);
         }
-      }
 
-      // if listed is more than 2 - relist action is what we do
-      return this.handleRelistAction(listedItems);
-    }
-
-    if (accountNfts.length >= 1 && accountNfts.length <= 2) {
-      // 1-2 NFT is in the wallet
-
-      if (listedItems.length === 0) {
-        // 0 listed => buy / list
-        const action = getRandomInt(0, 1);
-        if (action) {
-          return this.handleBuyAction(APTbalance, APTprice, 0.6, 12);
-        } else {
-          return this.handleListAction(accountNfts);
+        if (listedItems.length <= 2) {
+          // 1-2 listed => relist / buy
+          const action = getRandomInt(0, 1);
+          if (action) {
+            // 0.7$ - max nft price, 15% max percentage for NFT
+            return this.handleBuyAction(APTbalance, APTprice, 0.7, 15);
+          } else {
+            return this.handleRelistAction(listedItems);
+          }
         }
+
+        // if listed is more than 2 - relist action is what we do
+        return this.handleRelistAction(listedItems);
       }
 
-      if (listedItems.length <= 2) {
-        // 1-2 listed => list / relist
+      if (accountNfts.length >= 1 && accountNfts.length <= 2) {
+        // 1-2 NFT is in the wallet
+
+        if (listedItems.length === 0) {
+          // 0 listed => buy / list
+          const action = getRandomInt(0, 1);
+          if (action) {
+            return this.handleBuyAction(APTbalance, APTprice, 0.6, 12);
+          } else {
+            return this.handleListAction(accountNfts);
+          }
+        }
+
+        if (listedItems.length <= 2) {
+          // 1-2 listed => list / relist
+          return this.handleListOrRelistAction(accountNfts, listedItems);
+        }
+
+        // >2 listed => list / relist
         return this.handleListOrRelistAction(accountNfts, listedItems);
       }
 
-      // >2 listed => list / relist
+      // more than 2 NFTs in the wallet
+      if (listedItems.length === 0) {
+        // only list
+        return this.handleListAction(accountNfts);
+      }
+
+      if (listedItems.length <= 2) {
+        // 1-2 listed => list/relist
+        return this.handleListOrRelistAction(accountNfts, listedItems);
+      }
+
+      // more than 2 listed => list/relist
       return this.handleListOrRelistAction(accountNfts, listedItems);
+    } catch (error: any) {
+      console.log(`${this.aptosAccount.address}: Error occured - ${error.message}`);
+      return 'error';
     }
-
-    // more than 2 NFTs in the wallet
-    if (listedItems.length === 0) {
-      // only list
-      return this.handleListAction(accountNfts);
-    }
-
-    if (listedItems.length <= 2) {
-      // 1-2 listed => list/relist
-      return this.handleListOrRelistAction(accountNfts, listedItems);
-    }
-
-    // more than 2 listed => list/relist
-    return this.handleListOrRelistAction(accountNfts, listedItems);
   }
 
   private async handleBuyAction(balance: number, price: number, usdValue: number, percentage: number): Promise<string> {
