@@ -8,7 +8,7 @@
 ## Installation:
 
 1. Install Node.js => [https://nodejs.org/en/download](https://nodejs.org/en/download)
-2. Create Aptos Wallets and fund them (0.4 APT and more is preferred). Creation could be done with [https://cointool.app/createWallet/aptos](https://cointool.app/createWallet/aptos)
+2. Create Aptos Wallets and fund them (0.4 APT or more is preferred, but not more than 10$ in Aptos, it breaks gas calculations and causes error). Creation could be done with [https://cointool.app/createWallet/aptos](https://cointool.app/createWallet/aptos)
 3. Put your private keys in the `privates.txt` file in the root of the folder
 4. Run `npm install` to install dependencies
 5. Change config (optional) in src/config.const.ts file.
