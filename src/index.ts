@@ -5,6 +5,7 @@ import { NftModule } from './modules/nft.module';
 import { SwapModule } from './modules/swap.module';
 
 import {
+  manualTxTypeChoice,
   rpcUrl,
   sleepBetweenTransactionsMax,
   sleepBetweenTransactionsMin,
@@ -84,7 +85,7 @@ async function session(
   for (let i = 0; i < txAmount; i++) {
     walletOutputDataArr[walletID].min_until_next_tx = Number((msDelayArr[i] / 60000).toFixed(2));
 
-    const txType = getRandomInt(1, 3);
+    const txType = manualTxTypeChoice || getRandomInt(1, 3);
     let txHash;
     switch (txType) {
       case 1:
