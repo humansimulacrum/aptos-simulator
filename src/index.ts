@@ -74,7 +74,10 @@ async function session(
   const msDelayArr: number[] = [];
   let totalDelay = 0;
   for (let i = 0; i < txAmount; i++) {
-    const randomSleep = getRandomInt(timeSleepMin, timeSleepMax);
+    let randomSleep = getRandomInt(timeSleepMin, timeSleepMax);
+    if (i === 0) {
+      randomSleep = randomSleep * walletID;
+    }
     msDelayArr.push(randomSleep);
     totalDelay += randomSleep;
   }
@@ -83,6 +86,7 @@ async function session(
   walletOutputDataArr[walletID].progress = '0/' + txAmount;
 
   for (let i = 0; i < txAmount; i++) {
+    await sleep(msDelayArr[i]);
     walletOutputDataArr[walletID].min_until_next_tx = Number((msDelayArr[i] / 60000).toFixed(2));
 
     const txType: number = manualTxTypeChoice || getRandomInt(1, 3);
@@ -118,8 +122,6 @@ async function session(
       }
     }
     walletOutputDataArr[walletID].progress = i + 1 + '/' + txAmount;
-
-    await sleep(msDelayArr[i]);
   }
   walletOutputDataArr[walletID].status = 1;
 }
