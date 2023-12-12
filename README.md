@@ -23,6 +23,7 @@
 
     **rpcUrl** - here you can change the node to which transactions will be sent. The list of nodes can be found at [https://cointool.app/rpcServer/aptos](https://cointool.app/rpcServer/aptos)
 
+    **sellCollectionNamesBlacklist** - do not sell valuable nft from this list
 5. Run `npm run start`
 
 

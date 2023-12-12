@@ -13,3 +13,6 @@ export const rpcUrl = 'https://rpc.ankr.com/http/aptos/v1';
 // null - random choice
 
 export const manualTxTypeChoice = null;
+
+// do not sell valuable nft from this list
+export const sellCollectionNamesBlacklist = ['Galxe OAT', 'Aptos Names V1'];
