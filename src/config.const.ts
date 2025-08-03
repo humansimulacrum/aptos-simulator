@@ -5,14 +5,11 @@ export const txAmountMax = 7;
 export const sleepBetweenTransactionsMin = 120;
 export const sleepBetweenTransactionsMax = 300;
 
-export const rpcUrl = 'https://rpc.ankr.com/http/aptos/v1';
+export const rpcUrl =
+  'https://rpc.ankr.com/premium-http/aptos/c838e2546976e80e04458e57c44b5bae4c29342eec0e2faf5c3febccc156ba83/v1';
 
 // put 1 here if you want to perform swaps only
-// 2 - only nft
-// 3 - only liquid staking
+// 2 - only liquid staking
 // null - random choice
 
 export const manualTxTypeChoice = null;
-
-// do not sell valuable nft from this list
-export const sellCollectionNamesBlacklist = ['Galxe OAT', 'Aptos Names V1'];

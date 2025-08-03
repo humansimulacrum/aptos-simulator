@@ -1,24 +1,22 @@
-import { AptosAccount, AptosClient, HexString } from 'aptos';
+import { Account, Aptos, AptosConfig, Network, Ed25519PrivateKey } from '@aptos-labs/ts-sdk';
 
 import { LiquidStakeModule } from './modules/stake.module';
-import { NftModule } from './modules/nft.module';
 import { SwapModule } from './modules/swap.module';
 
 import {
   manualTxTypeChoice,
-  rpcUrl,
   sleepBetweenTransactionsMax,
   sleepBetweenTransactionsMin,
   txAmountMax,
   txAmountMin,
 } from './config.const';
 
-import { tokenList } from './tokenList.const';
 import { renderOutput } from './helpers/console.helper';
 import { importWallets } from './helpers/file-import.helper';
 import { getRandomInt, sleep } from './helpers';
 
-const client = new AptosClient(rpcUrl);
+const config = new AptosConfig({ network: Network.MAINNET});
+const client = new Aptos(config);
 
 let walletOutputDataArr: WalletOutputData[] = [];
 
@@ -27,8 +25,9 @@ async function main() {
 
   for (let i = 0; i < privateKeys.length; i++) {
     try {
-      const aptosAccount = new AptosAccount(new HexString(privateKeys[i]).toUint8Array());
-      await client.getAccountResources(aptosAccount.address());
+      const privateKeyInstance = new Ed25519PrivateKey(privateKeys[i]);
+      const aptosAccount = Account.fromPrivateKey({ privateKey: privateKeyInstance });
+      await client.getAccountResources({ accountAddress: aptosAccount.accountAddress });
     } catch (error) {
       console.log('Wrong private keys are entered or there are no funds on the wallet: ');
       console.log(i + ') ' + privateKeys[i]);
@@ -69,7 +68,6 @@ async function session(
 ) {
   const dexTrader = new SwapModule(privateKey, client);
   const liquidStaker = new LiquidStakeModule(privateKey, client);
-  const nftTrader = new NftModule(privateKey, client);
 
   const msDelayArr: number[] = [];
   let totalDelay = 0;
@@ -98,11 +96,6 @@ async function session(
         break;
 
       case 2:
-        walletOutputDataArr[walletID].current_tx_type = 'NFT action';
-        txHash = await nftTrader.makeRandomNftAction(tokenList[0].estimatedPriceInUsd);
-        break;
-
-      case 3:
         walletOutputDataArr[walletID].current_tx_type = 'liquid staking action';
         txHash = await liquidStaker.makeRandomStakeAction();
         break;
@@ -114,7 +107,7 @@ async function session(
     if (txHash === 'error') {
       walletOutputDataArr[walletID].last_tx_result = 'Error when creating a TX';
     } else {
-      const txResult = ((await client.waitForTransactionWithResult(txHash as string)) as any).success;
+      const txResult = (await client.waitForTransaction({ transactionHash: txHash as string })).success;
       if (txResult) {
         walletOutputDataArr[walletID].last_tx_result = 'TX was successful';
       } else {

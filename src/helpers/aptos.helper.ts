@@ -1,12 +1,16 @@
-import { AptosAccount, AptosClient } from 'aptos';
+import { Account, Aptos } from '@aptos-labs/ts-sdk';
 
-export async function getTokenBalance(token: string, account: AptosAccount, client: AptosClient): Promise<number> {
-  token = '0x1::coin::CoinStore<' + token + '>';
-  const resources = await client.getAccountResources(account.address());
-  for (let i = 0; i < resources.length; i++) {
-    if (resources[i]['type'] === token) {
-      return (resources[i]['data'] as any)['coin']['value'] as number;
-    }
+export async function getTokenBalance(token: string, account: Account, client: Aptos): Promise<number> {
+  const resources = await client.getCurrentFungibleAssetBalances({
+    options: { where: { asset_type: { _eq: token }, owner_address: { _eq: account.accountAddress.toString() } } },
+  });
+
+  const record = resources[0];
+
+  if (!record) {
+    console.warn('Token ' + token + ' not found on account ' + account.accountAddress.toString());
+    return 0;
   }
-  return 0;
+
+  return record.amount;
 }

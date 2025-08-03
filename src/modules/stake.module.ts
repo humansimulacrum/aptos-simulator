@@ -1,6 +1,6 @@
-import { AptosClient, AptosAccount, HexString } from 'aptos';
+import { Aptos, Account, Ed25519PrivateKey, MoveFunctionId } from '@aptos-labs/ts-sdk';
 import { tokenList } from '../tokenList.const';
-import { addHoursAndGetSeconds, calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
+import { calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
 
 const TORTUGA_CONTRACT_ADDRESS = '0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f';
 const APTOS_TORTUGA_STAKED_ADDRESS = '0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541';
@@ -9,14 +9,13 @@ const DITTO_STAKED_APTOS_ADDRESS = '0xd11107bdf0d6d7040c6c0bfbdecb6545191fdf13e8
 
 export class LiquidStakeModule {
   private privateKey: string;
-  private hexPrivateKey: HexString;
-  private account: AptosAccount;
-  private client: AptosClient;
+  private account: Account;
+  private client: Aptos;
 
-  constructor(privateKey: string, client: AptosClient) {
+  constructor(privateKey: string, client: Aptos) {
     this.privateKey = privateKey;
-    this.hexPrivateKey = new HexString(this.privateKey);
-    this.account = new AptosAccount(this.hexPrivateKey.toUint8Array());
+    const privateKeyInstance = new Ed25519PrivateKey(this.privateKey);
+    this.account = Account.fromPrivateKey({ privateKey: privateKeyInstance });
     this.client = client;
   }
 
@@ -37,7 +36,7 @@ export class LiquidStakeModule {
 
       return txHash;
     } catch (error: any) {
-      console.log(`${this.account.address}: Error occured - ${error.message}`);
+      console.log(`${this.account.accountAddress}: Error occured - ${error.message}`);
       return 'error';
     }
   }
@@ -77,129 +76,115 @@ export class LiquidStakeModule {
   }
 
   public async stakeOnDittoFi(amount: number): Promise<string> {
-    const payload = this.getPayloadForStakeOnDittoFi(amount);
+    // build transaction
+    const rawTxn = await this.client.transaction.build.simple({
+      sender: this.account.accountAddress,
+      data: {
+        function: `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::stake_aptos`,
+        typeArguments: [],
+        functionArguments: [amount.toString()],
+      },
+    });
 
-    const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
-    const options: Partial<SubmitTransactionRequest> = {
-      max_gas_amount: max_gas_amount.toString(),
-      expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
-    };
-    const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-    const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
+    // sign transaction
+    const senderAuthenticator = this.client.transaction.sign({
+      signer: this.account,
+      transaction: rawTxn,
+    });
 
-    return sendedTxHash;
+    // submit transaction
+    const pendingTransaction = await this.client.transaction.submit.simple({
+      transaction: rawTxn,
+      senderAuthenticator,
+    });
+
+    return pendingTransaction.hash;
   }
 
   public async unstakeFromDittoFi(amount: number): Promise<string> {
     const stAPTbalance = await getTokenBalance(tokenList[4].address, this.account, this.client);
     if (amount > stAPTbalance) amount = stAPTbalance;
 
-    const payload = this.getPayloadForUnstakeFromDittoFi(amount);
+    // build transaction
+    const rawTxn = await this.client.transaction.build.simple({
+      sender: this.account.accountAddress,
+      data: {
+        function: `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::instant_unstake`,
+        typeArguments: [],
+        functionArguments: [amount.toString()],
+      },
+    });
 
-    const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
-    const options: Partial<SubmitTransactionRequest> = {
-      max_gas_amount: max_gas_amount.toString(),
-      expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
-    };
-    const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-    const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
+    // sign transaction
+    const senderAuthenticator = this.client.transaction.sign({
+      signer: this.account,
+      transaction: rawTxn,
+    });
 
-    return sendedTxHash;
-  }
+    // submit transaction
+    const pendingTransaction = await this.client.transaction.submit.simple({
+      transaction: rawTxn,
+      senderAuthenticator,
+    });
 
-  private getPayloadForUnstakeFromDittoFi(amount: number): EntryFunctionPayload {
-    const moveFunction = `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::instant_unstake`;
-    const _arguments = [amount.toString()];
-    const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
-    return payload;
-  }
-
-  private getPayloadForStakeOnDittoFi(amount: number): EntryFunctionPayload {
-    const moveFunction = `${DITTO_STAKED_APTOS_ADDRESS}::ditto_staking::stake_aptos`;
-    const _arguments = [amount.toString()];
-    const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
-    return payload;
+    return pendingTransaction.hash;
   }
 
   public async stakeOnTortuga(amount: number): Promise<string> {
-    const payload = this.getPayloadForStakeOnTortuga(amount);
+    // build transaction
+    const rawTxn = await this.client.transaction.build.simple({
+      sender: this.account.accountAddress,
+      data: {
+        function: `${TORTUGA_CONTRACT_ADDRESS}::stake_router::stake` as MoveFunctionId,
+        typeArguments: [],
+        functionArguments: [amount.toString()],
+      },
+    });
 
-    const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
-    const options: Partial<SubmitTransactionRequest> = {
-      max_gas_amount: max_gas_amount.toString(),
-      expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
-    };
-    const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-    const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
+    // sign transaction
+    const senderAuthenticator = this.client.transaction.sign({
+      signer: this.account,
+      transaction: rawTxn,
+    });
 
-    return sendedTxHash;
+    // submit transaction
+    const pendingTransaction = await this.client.transaction.submit.simple({
+      transaction: rawTxn,
+      senderAuthenticator,
+    });
+
+    return pendingTransaction.hash;
   }
 
   public async unstakeFromTortuga(amount: number): Promise<string> {
     const tAPTbalance = await getTokenBalance(tokenList[5].address, this.account, this.client);
     if (amount > tAPTbalance) amount = tAPTbalance;
 
-    const payload = this.getPayloadForUnstakeFromTortuga(amount);
+    // build transaction
+    const rawTxn = await this.client.transaction.build.simple({
+      sender: this.account.accountAddress,
+      data: {
+        function: `${APTOS_TORTUGA_STAKED_ADDRESS}::amm::swap_exact_coin_for_coin_with_signer` as MoveFunctionId,
+        typeArguments: [
+          `${STAKED_APTOS_COIN_ADDRESS}::staked_aptos_coin::StakedAptosCoin`,
+          '0x1::aptos_coin::AptosCoin',
+        ],
+        functionArguments: [amount.toString(), '0'],
+      },
+    });
 
-    const max_gas_amount = await this.client.estimateMaxGasAmount(this.account.address());
-    const options: Partial<SubmitTransactionRequest> = {
-      max_gas_amount: max_gas_amount.toString(),
-      expiration_timestamp_secs: addHoursAndGetSeconds(1).toString(),
-    };
-    const rawTx = await this.client.generateTransaction(this.account.address(), payload, options);
-    const sendedTxHash = await this.client.signAndSubmitTransaction(this.account, rawTx);
+    // sign transaction
+    const senderAuthenticator = this.client.transaction.sign({
+      signer: this.account,
+      transaction: rawTxn,
+    });
 
-    return sendedTxHash;
-  }
+    // submit transaction
+    const pendingTransaction = await this.client.transaction.submit.simple({
+      transaction: rawTxn,
+      senderAuthenticator,
+    });
 
-  private getPayloadForUnstakeFromTortuga(amount: number): EntryFunctionPayload {
-    const moveFunction = `${APTOS_TORTUGA_STAKED_ADDRESS}::amm::swap_exact_coin_for_coin_with_signer`;
-    const type_arguments = [
-      `${STAKED_APTOS_COIN_ADDRESS}::staked_aptos_coin::StakedAptosCoin`,
-      '0x1::aptos_coin::AptosCoin',
-    ];
-    const _arguments = [amount.toString(), '0'];
-    const payload: EntryFunctionPayload = {
-      function: moveFunction,
-      type_arguments: type_arguments,
-      arguments: _arguments,
-    };
-    return payload;
-  }
-
-  private getPayloadForStakeOnTortuga(amount: number): EntryFunctionPayload {
-    const moveFunction = `${TORTUGA_CONTRACT_ADDRESS}::stake_router::stake`;
-    const _arguments = [amount.toString()];
-    const payload: EntryFunctionPayload = { function: moveFunction, type_arguments: [], arguments: _arguments };
-    return payload;
+    return pendingTransaction.hash;
   }
 }
-
-declare type EntryFunctionPayload = {
-  function: string;
-  type_arguments: Array<any>;
-  arguments: Array<any>;
-};
-
-declare type SubmitTransactionRequest = {
-  sender: string;
-  sequence_number: string;
-  max_gas_amount: string;
-  gas_unit_price: string;
-  expiration_timestamp_secs: string;
-  payload: TransactionPayload_EntryFunctionPayload;
-  signature: TransactionSignature_Ed25519Signature;
-};
-
-declare type TransactionPayload_EntryFunctionPayload = {
-  type: string;
-} & EntryFunctionPayload;
-
-declare type TransactionSignature_Ed25519Signature = {
-  type: string;
-} & Ed25519Signature$1;
-
-declare type Ed25519Signature$1 = {
-  public_key: string;
-  signature: string;
-};
