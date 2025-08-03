@@ -1,4 +1,4 @@
-import { Account, Aptos, AptosConfig, Network, Ed25519PrivateKey } from '@aptos-labs/ts-sdk';
+import { Account, Aptos, AptosConfig, Ed25519PrivateKey, Network, PrivateKey, PrivateKeyVariants } from '@aptos-labs/ts-sdk';
 
 import { LiquidStakeModule } from './modules/stake.module';
 import { SwapModule } from './modules/swap.module';
@@ -25,7 +25,8 @@ async function main() {
 
   for (let i = 0; i < privateKeys.length; i++) {
     try {
-      const privateKeyInstance = new Ed25519PrivateKey(privateKeys[i]);
+      const formattedPrivateKey = PrivateKey.formatPrivateKey(privateKeys[i], PrivateKeyVariants.Ed25519);
+      const privateKeyInstance = new Ed25519PrivateKey(formattedPrivateKey, true);
       const aptosAccount = Account.fromPrivateKey({ privateKey: privateKeyInstance });
       await client.getAccountResources({ accountAddress: aptosAccount.accountAddress });
     } catch (error) {
@@ -84,8 +85,23 @@ async function session(
   walletOutputDataArr[walletID].progress = '0/' + txAmount;
 
   for (let i = 0; i < txAmount; i++) {
-    await sleep(msDelayArr[i]);
-    walletOutputDataArr[walletID].min_until_next_tx = Number((msDelayArr[i] / 60000).toFixed(2));
+    // Set the initial countdown value
+    const sleepTime = msDelayArr[i];
+    const startTime = Date.now();
+    const endTime = startTime + sleepTime;
+    
+    // Create an interval to update the countdown
+    const countdownInterval = setInterval(() => {
+      const remaining = Math.max(0, endTime - Date.now());
+      walletOutputDataArr[walletID].min_until_next_tx = Number((remaining / 60000).toFixed(2));
+    }, 2000);
+    
+    // Wait for the sleep time
+    await sleep(sleepTime);
+    
+    // Clear the interval once sleep is done
+    clearInterval(countdownInterval);
+    walletOutputDataArr[walletID].min_until_next_tx = 0;
 
     const txType: number = manualTxTypeChoice || getRandomInt(1, 2);
     let txHash;
