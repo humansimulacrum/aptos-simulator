@@ -87,7 +87,7 @@ async function session(
     await sleep(msDelayArr[i]);
     walletOutputDataArr[walletID].min_until_next_tx = Number((msDelayArr[i] / 60000).toFixed(2));
 
-    const txType: number = manualTxTypeChoice || getRandomInt(1, 3);
+    const txType: number = manualTxTypeChoice || getRandomInt(1, 2);
     let txHash;
     switch (txType) {
       case 1:

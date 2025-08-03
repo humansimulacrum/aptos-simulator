@@ -1,6 +1,6 @@
 import { Aptos, Account, Ed25519PrivateKey, MoveFunctionId } from '@aptos-labs/ts-sdk';
 import { tokenList } from '../tokenList.const';
-import { calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
+import { calculatePercentage, getRandomInt, getAllTokenBalances } from '../helpers';
 
 const TORTUGA_CONTRACT_ADDRESS = '0x8f396e4246b2ba87b51c0739ef5ea4f26515a98375308c31ac2ec1e42142a57f';
 const APTOS_TORTUGA_STAKED_ADDRESS = '0xbd35135844473187163ca197ca93b2ab014370587bb0ed3befff9e902d6bb541';
@@ -21,17 +21,18 @@ export class LiquidStakeModule {
 
   public async makeRandomStakeAction(): Promise<string> {
     try {
-      const stAPTbalance = await getTokenBalance(tokenList[4].address, this.account, this.client);
-      const tAPTbalance = await getTokenBalance(tokenList[5].address, this.account, this.client);
+      const balances = await getAllTokenBalances(this.account, this.client);
+      const stAPTbalance = balances[tokenList[4].address] || 0;
+      const tAPTbalance = balances[tokenList[5].address] || 0;
 
       let txHash;
 
       if (stAPTbalance + tAPTbalance > 0) {
         const action = getRandomInt(0, 1);
-        if (action) txHash = await this.randomUnStake(stAPTbalance, tAPTbalance);
-        else txHash = await this.randomStake();
+        if (action) txHash = await this.randomUnStake(stAPTbalance, tAPTbalance, balances);
+        else txHash = await this.randomStake(balances);
       } else {
-        txHash = await this.randomStake();
+        txHash = await this.randomStake(balances);
       }
 
       return txHash;
@@ -41,7 +42,11 @@ export class LiquidStakeModule {
     }
   }
 
-  private async randomUnStake(stAPTbalance: number, tAPTbalance: number): Promise<string> {
+  private async randomUnStake(
+    stAPTbalance: number,
+    tAPTbalance: number,
+    balances: Record<string, number>
+  ): Promise<string> {
     const amountForDitto = getRandomInt(calculatePercentage(stAPTbalance, 60), calculatePercentage(stAPTbalance, 100));
     const amountForTortuga = getRandomInt(calculatePercentage(tAPTbalance, 60), calculatePercentage(tAPTbalance, 100));
 
@@ -49,21 +54,21 @@ export class LiquidStakeModule {
 
     if (stAPTbalance > 0 && tAPTbalance > 0) {
       const action = getRandomInt(0, 1);
-      if (action) txHash = await this.unstakeFromDittoFi(amountForDitto);
-      else txHash = await this.unstakeFromTortuga(amountForTortuga);
+      if (action) txHash = await this.unstakeFromDittoFi(amountForDitto, balances);
+      else txHash = await this.unstakeFromTortuga(amountForTortuga, balances);
     } else {
       if (stAPTbalance > 0) {
-        txHash = await this.unstakeFromDittoFi(amountForDitto);
+        txHash = await this.unstakeFromDittoFi(amountForDitto, balances);
       } else {
-        txHash = await this.unstakeFromTortuga(amountForTortuga);
+        txHash = await this.unstakeFromTortuga(amountForTortuga, balances);
       }
     }
 
     return txHash;
   }
 
-  private async randomStake(): Promise<string> {
-    const APTbalance = await getTokenBalance(tokenList[0].address, this.account, this.client);
+  private async randomStake(balances: Record<string, number>): Promise<string> {
+    const APTbalance = balances[tokenList[0].address] || 0;
     const amount = getRandomInt(calculatePercentage(APTbalance, 20), calculatePercentage(APTbalance, 60));
 
     const platformNum = getRandomInt(1, 2);
@@ -101,8 +106,8 @@ export class LiquidStakeModule {
     return pendingTransaction.hash;
   }
 
-  public async unstakeFromDittoFi(amount: number): Promise<string> {
-    const stAPTbalance = await getTokenBalance(tokenList[4].address, this.account, this.client);
+  public async unstakeFromDittoFi(amount: number, balances: Record<string, number>): Promise<string> {
+    const stAPTbalance = balances[tokenList[4].address] || 0;
     if (amount > stAPTbalance) amount = stAPTbalance;
 
     // build transaction
@@ -156,8 +161,8 @@ export class LiquidStakeModule {
     return pendingTransaction.hash;
   }
 
-  public async unstakeFromTortuga(amount: number): Promise<string> {
-    const tAPTbalance = await getTokenBalance(tokenList[5].address, this.account, this.client);
+  public async unstakeFromTortuga(amount: number, balances: Record<string, number>): Promise<string> {
+    const tAPTbalance = balances[tokenList[5].address] || 0;
     if (amount > tAPTbalance) amount = tAPTbalance;
 
     // build transaction

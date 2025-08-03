@@ -6,7 +6,7 @@ import {
   MoveFunctionId,
 } from '@aptos-labs/ts-sdk';
 import { Token, tokenList } from '../tokenList.const';
-import { calculatePercentage, getRandomInt, getTokenBalance } from '../helpers';
+import { calculatePercentage, getRandomInt, getAllTokenBalances } from '../helpers';
 
 const LIQUID_SWAP_CONTRACT_ADDRESS = '0x190d44266241744264b964a37b8f09863167a12d3e70cda39376cfb4e3561e12';
 
@@ -29,10 +29,11 @@ export class SwapModule {
       let toToken;
       let amount;
 
+      const balances = await getAllTokenBalances(this.account, this.client);
       const accountTokens: Token[] = [];
 
       for (let i = 0; i < tokenList.length; i++) {
-        const tokenBalance = await getTokenBalance(tokenList[i].address, this.account, this.client);
+        const tokenBalance = balances[tokenList[i].address] || 0;
         const cashInToken = tokenList[i].estimatedPriceInUsd * (tokenBalance / 10 ** tokenList[i].decimals);
         if (cashInToken > 0.1) accountTokens.push(tokenList[i]);
       }
@@ -51,7 +52,7 @@ export class SwapModule {
         if (toToken.address !== fromToken.address) break;
       }
 
-      const fromTokenBalance = await getTokenBalance(fromToken.address, this.account, this.client);
+      const fromTokenBalance = balances[fromToken.address] || 0;
 
       if (fromToken === tokenList[0]) {
         amount = getRandomInt(calculatePercentage(fromTokenBalance, 10), calculatePercentage(fromTokenBalance, 70));
